@@ -76,7 +76,7 @@ def run(diet, allergen, dislikes, numberDays):
         
 
     #print(ingredientsSheet)
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     # USER INPUT 
 

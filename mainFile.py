@@ -8,10 +8,13 @@ Created on Tue Jan 16 14:50:15 2024
 import cgitb 
 cgitb.enable()
 import json
+import runFunctions
+from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template
 
 
 def website(data):
-    with open('website.html', 'w') as file:
+    with open('templates/website.html', 'w', encoding='utf-8') as file:
         # Start of the HTML document
         file.write("<!DOCTYPE html>\n")
         file.write("<html lang='en'>\n")
@@ -36,12 +39,15 @@ def website(data):
             raise ValueError("Unsupported data type for 'data'. Expected a list or a dictionary.")
 
         for recipe_str in recipes:
+            print(repr(recipe_str))  # Use repr() to reveal hidden characters
+            if not isinstance(recipe_str, str):
+                print(f"Expected a string, got {type(recipe_str)}")
+                continue  # Skip non-string items
             try:
-                recipe = json.loads(recipe_str)  # Parse the JSON string into a dictionary
-                # Now you can work with `recipe` as a dictionary
+                recipe = json.loads(recipe_str)
             except json.JSONDecodeError as e:
                 print(f"Error parsing JSON: {e}")
-            # Assuming each 'recipe' is a dictionary with the keys: 'recipe_title', 'ingredients', 'instructions', and 'notes'
+                continue
             file.write("<h1>Recipe Title</h1>\n")
             file.write(f"<div>{recipe.get('recipe_title', 'No Title')}</div>\n")
             file.write("<h1>Ingredients</h1>\n")
@@ -64,20 +70,9 @@ def website(data):
                     file.write(f"<li>{note}</li>\n")
             file.write("</ul>\n")
 
-        # Adding JavaScript for button functionality
-        file.write("</div>\n")
-        file.write("<script>\n")
-        file.write("document.getElementById('runFunction').addEventListener('click', function() {\n")
-        file.write("  fetch('/path-to-your-function-endpoint')\n")
-        file.write("    .then(response => response.json())\n")
-        file.write("    .then(data => {\n")
-        file.write("      console.log(data); // For demonstration\n")
-        file.write("      // Update HTML based on 'data'\n")
-        file.write("    })\n")
-        file.write("    .catch(error => console.error('Error:', error));\n")
-        file.write("});\n")
-        file.write("</script>\n")
-
         # End of the body and HTML document
         file.write("</body>\n")
         file.write("</html>\n")
+
+    
+

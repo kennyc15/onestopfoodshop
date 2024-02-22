@@ -462,9 +462,10 @@ def generateRecipe(api_key, row, diet, allergen):
                 "Black pepper"
             ],
             "instructions": [
+                "Preheat oven to 180 degrees celcius."
                 "Cook the pasta according to package instructions, then drain and set aside.",
-                "In a large pan, heat olive oil over medium heat. Add minced garlic and red pepper flakes, and sauté until fragrant.",
-                "Add sliced red onion and sauté until translucent. Then add the cherry tomatoes and sundried tomatoes, cook for a few minutes until softened.",
+                "In a large pan, heat olive oil over medium heat. Add minced garlic and red pepper flakes, and cook until fragrant.",
+                "Add sliced red onion and cook until translucent. Then add the cherry tomatoes and sundried tomatoes, cook for a few minutes until softened.",
                 "Add the kidney beans and cooked pasta to the pan. Season with salt and black pepper, then toss everything together until well combined.",
                 "Turn off the heat and stir in the arugula until it wilts slightly.",
                 "Serve the Tomato Tango Pasta hot, garnished with some extra arugula leaves."
