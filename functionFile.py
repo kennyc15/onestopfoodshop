@@ -203,12 +203,12 @@ def calculate_veg_score(df1, df2):
 # This returns IDs of vegetables that will be used in the meal plan
 
 def top_scorers(vegScoreDataframe, daysInPlan):
-    numVegUp = (2 + daysInPlan)
-    numVegLow = (daysInPlan + 1)
+    numVegUp = (3 + daysInPlan)
+    numVegLow = (daysInPlan + 2)
     size=int(np.floor(np.random.uniform(numVegLow, numVegUp)))
     # Sort the DataFrame based on the 'Scoring' column in descending order
     sorted_df = vegScoreDataframe.sort_values(by='Score', ascending=False)
-    print(sorted_df)
+
     # Print the top n scorers' Dish IDs
     x = sorted_df.head(size)['Ingredient_ID'].tolist()
     return x
@@ -392,6 +392,33 @@ def replace_newlines(text):
     return text.replace("\\n", "\n").replace("\n", "\n")
 
 
+def convert_recipes_to_dict(recipes_list):
+    # Join the list items into a single string, assuming each item is a complete JSON object
+    # and assuming they are separated in a way that needs correction for valid JSON formatting.
+    formatted_str = "[" + ",".join(recipes_list) + "]"
+    
+    try:
+        # Load the string as a JSON array (list of dictionaries in Python)
+        recipes_list = json.loads(formatted_str)
+        
+        # Convert the list into a dictionary with `recipe_title` as keys
+        recipes_dict = {recipe["recipe_title"]: recipe for recipe in recipes_list}
+        return recipes_dict
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON: {e}")
+        return None
+    
+
+def convert_list_to_recipe_dict(recipe_list):
+    recipes_dict = {}
+    for recipe_str in recipe_list:
+        # Parse each string as a JSON object
+        recipe = json.loads(recipe_str)
+        # Add the recipe to the dictionary, using the title as the key
+        recipes_dict[recipe["recipe_title"]] = recipe
+    return recipes_dict
+    
+
 
 def generateRecipe(api_key, row, diet, allergen):
     # Set API key
@@ -415,22 +442,86 @@ def generateRecipe(api_key, row, diet, allergen):
         You may use pantry items such as spices, sauces, and others that do not expire.
         Give the recipe a creative, fun name relevant for a {dish_id} dish.
         Do not print measurements for ingredients_list.
-        Return each recipe in a nice structure. 
-        """
+        Return each recipe as a json objects with four keys: recipe_title, ingredients
+        instructions, notes. 
+        
+        Example: 
+          {{
+            "recipe_title": "Tomato Tango Pasta",
+            "ingredients": [
+                "Pasta",
+                "Sundried tomatoes",
+                "Cherry tomatoes",
+                "Red onion",
+                "Arugula",
+                "Kidney beans",
+                "Olive oil",
+                "Garlic",
+                "Red pepper flakes",
+                "Salt",
+                "Black pepper"
+            ],
+            "instructions": [
+                "Cook the pasta according to package instructions, then drain and set aside.",
+                "In a large pan, heat olive oil over medium heat. Add minced garlic and red pepper flakes, and sauté until fragrant.",
+                "Add sliced red onion and sauté until translucent. Then add the cherry tomatoes and sundried tomatoes, cook for a few minutes until softened.",
+                "Add the kidney beans and cooked pasta to the pan. Season with salt and black pepper, then toss everything together until well combined.",
+                "Turn off the heat and stir in the arugula until it wilts slightly.",
+                "Serve the Tomato Tango Pasta hot, garnished with some extra arugula leaves."
+            ],
+            "notes": "Feel free to top with some grated Parmesan cheese or a drizzle of balsamic glaze for extra flavor."
+          }}
+          """
 
 
 
     # Call API 
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-0125",
+        model="gpt-3.5-turbo-0125", temperature = 0.5,
         messages=[
             {"role": "system", "content": "You are a recipe creator."},
             {"role": "user", "content": prompt},
         ],
-        max_tokens=1200  # Adjust as needed
+        max_tokens=1200,  # Adjust as needed
     )
     
     # Extract the generated recipe and replace newline characters
     generated_recipe = replace_newlines(response['choices'][0]['message']['content'])
    
     return generated_recipe
+
+
+
+def formatJson(recipe_list, api_key):
+    # Set API key
+    openai.api_key = api_key
+    
+    recipe_list_str = str(recipe_list) if recipe_list else '[]'
+
+    prompt = f'''
+        Ensure that each individual recipe in the list below is in proper JSON format so that it can be parsed into a dictionary:
+        
+        {recipe_list_str}
+        
+        The four keys are: recipe_title, ingredients, instructions, notes. 
+        Keep these points in mind:
+        - Missing Quotes: Every string value and key in JSON must be enclosed in double quotes (""). Single quotes (') are not valid.
+        - Trailing Commas: JSON does not allow trailing commas. For example, in an object or array, having a comma after the last element can cause parsing to fail.
+        - Incorrect Brackets: Ensure that all objects (curly brackets) and arrays (square brackets) are correctly opened and closed.
+        - Empty Values: JSON parsers expect every key to have a value. Ensure there are no keys without values.
+        
+        This ensures that your data is correctly structured for JSON parsing, which is critical for further processing or analysis.
+        Return as a list of Json objects. 
+    '''
+
+    # Call API 
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-0125", temperature = 0.5,
+        messages=[
+            {"role": "system", "content": "You are a json format expert."},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=2000,  # Adjust as needed
+    )
+    y = response['choices'][0]['message']['content']
+    return y

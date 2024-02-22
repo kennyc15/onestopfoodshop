@@ -44,7 +44,7 @@ def filterIngredientsSheet(ingredientsSheet, dietSheet,
 
 
 
-def run():
+def run(diet, allergen, dislikes, numberDays):
     
     # Database connection parameters
     db_params = {
@@ -76,18 +76,18 @@ def run():
         
 
     #print(ingredientsSheet)
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     # USER INPUT 
 
-    dietaryPreferences = input("Enter your dietary preference (e.g. Vegan, None): ")
+    dietaryPreferences = diet
 
     # Currently only takes one allergy- need to update this
-    allergies = input( "Enter any allergies you have (e.g. Nuts, Fish): ")
+    allergies = allergen
 
-    dislikeList = input("Enter any food(s) you dislike (e.g. Shellfish, Mushrooms): ").split(',')
+    dislikeList = dislikes.split(',')
 
-    daysInPlan = int(input("How many days would you like to meal plan for: "))
+    daysInPlan = int(numberDays)
 
 
     filtered_sheet = filterIngredientsSheet(ingredientsSheet, dietSheet, 
@@ -96,7 +96,7 @@ def run():
 
     # This ensures that the same ingredient is not inlcuded in every single day of the plan 
     filtered_sheet['meals'] = pd.to_numeric(filtered_sheet['meals'], errors='coerce')
-    print( filtered_sheet)
+
     ingredientsSheet = filtered_sheet[filtered_sheet['meals'] <= daysInPlan]
     
     pd.set_option('display.max_columns', None)
@@ -151,7 +151,6 @@ def run():
     for _, row in df_check.iterrows():
         recipe = functionFile.generateRecipe(openai.api_key, row, dietaryPreferences, allergies)
         recipes.append(recipe)
- 
-    
+
     return recipes
 
