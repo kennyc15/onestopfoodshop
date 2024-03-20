@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jan 16 14:59:32 2024
-
-@author: cckk4
-"""
-
 import random
 import pandas as pd
 import numpy as np
@@ -18,55 +11,55 @@ def normal_round(n):
         return math.floor(n)
     return math.ceil(n)
 
-def chooseProteins(ingredients_sheet, days_in_plan):
+def chooseProteins(ingredientsSheet, days):
     """Picks the Protein Sample considering the number of days in the plan."""
-    num_proteins = math.floor(days_in_plan / 2)
+    numProteins = math.floor(days / 2)
 
     while True:
-        proteins = ingredients_sheet[ingredients_sheet['Macro'] == 'P']
-        proteins = proteins[proteins['meals'] <= days_in_plan]
+        proteins = ingredientsSheet[ingredientsSheet['Macro'] == 'P']
+        proteins = proteins[proteins['meals'] <= days]
         
         if proteins.empty:
             return None
 
         probs = proteins['Frequency'] / proteins['Frequency'].sum()
-        valid_mask = proteins['meals'] <= days_in_plan
-        valid_probs = np.where(valid_mask, probs, 0)
-        valid_probs /= valid_probs.sum()
+        validMask = proteins['meals'] <= days
+        validProbs = np.where(validMask, probs, 0)
+        validProbs /= validProbs.sum()
 
-        protein_sample = np.random.choice(proteins['ID'], size=num_proteins, replace=False, p=valid_probs)
+        proteinSample = np.random.choice(proteins['ID'], size=numProteins, replace=False, p=validProbs)
 
-        if proteins.loc[proteins['ID'].isin(protein_sample), 'meals'].sum() == days_in_plan:
-            return protein_sample
+        if proteins.loc[proteins['ID'].isin(proteinSample), 'meals'].sum() == days:
+            return proteinSample
 
 def getDishIndices(proteinIndicesList, proteinDishDataframe):
     """Chooses a base and gets the corresponding Dish ID for the protein and base."""
-    used_base_ids = {protein_id: set() for protein_id in proteinIndicesList}
-    dish_ids_list, base_ids_list = [], []
+    usedBaseIds = {protein_id: set() for protein_id in proteinIndicesList}
+    dishIDsList, baseIDsList = [], []
 
-    for protein_id_to_lookup in proteinIndicesList:
-        bool_value = True
+    for proteinToLookup in proteinIndicesList:
+        boolValue = True
 
-        while bool_value:
-            available_base_ids = set(range(1, 7)) - used_base_ids[protein_id_to_lookup]
+        while boolValue:
+            available_base_ids = set(range(1, 7)) - usedBaseIds[proteinToLookup]
             if not available_base_ids:
-                used_base_ids[protein_id_to_lookup] = set()
+                usedBaseIds[proteinToLookup] = set()
 
             base_id_to_lookup = random.choice(list(available_base_ids))
             result = proteinDishDataframe.loc[
-                (proteinDishDataframe['Protein_ID'] == protein_id_to_lookup) &
+                (proteinDishDataframe['Protein_ID'] == proteinToLookup) &
                 (proteinDishDataframe['Base_ID'] == base_id_to_lookup), 'Dish_ID']
 
             if not result.empty:
-                dish_id = result.iloc[0]
-                dish_ids_list.append(dish_id)
-                base_ids_list.append(base_id_to_lookup)
-                used_base_ids[protein_id_to_lookup].add(base_id_to_lookup)
-                bool_value = False
+                dishID = result.iloc[0]
+                dishIDsList.append(dishID)
+                baseIDsList.append(base_id_to_lookup)
+                usedBaseIds[proteinToLookup].add(base_id_to_lookup)
+                boolValue = False
             else:
-                bool_value = True
+                boolValue = True
 
-    return dish_ids_list, base_ids_list
+    return dishIDsList, baseIDsList
 
 def getNumberMeals(indices, daysInPlan, ingredientsSheet):
     """Gets the number of meals that will have a protein."""
@@ -75,22 +68,22 @@ def getNumberMeals(indices, daysInPlan, ingredientsSheet):
 
 def duplicatedList(ingMealCounter, totalPortions):
     """Lists the proteins based on how many meals they are included in."""
-    v, bool_val = [], False
+    v, boolVal = [], False
 
-    while not bool_val:
+    while not boolVal:
         id_list = ingMealCounter['ID'].tolist()
         x = random.choice(id_list)
-        matching_indices = ingMealCounter.index[ingMealCounter['ID'] == x]
+        matching = ingMealCounter.index[ingMealCounter['ID'] == x]
         
-        if len(matching_indices) > 0:
-            index_x = matching_indices[0]
+        if len(matching) > 0:
+            index_x = matching[0]
             if ingMealCounter.at[index_x, 'meals'] != 0:
                 v.append(x)
                 ingMealCounter.at[index_x, 'meals'] -= 1
                 ingMealCounter = ingMealCounter[ingMealCounter['meals'] > 0]
                 
                 if len(v) == totalPortions:
-                    bool_val = True
+                    boolVal = True
 
     return v
 
@@ -106,23 +99,24 @@ def createDishBaseProteinDataframe(dish, base, protein):
 
 def calculateVegScore(df1, df2):
     """Scores vegetables based on how many of the dishes they can go into."""
-    result_df = pd.DataFrame(columns=['Ingredient_ID', 'Score'])
+    resultDF = pd.DataFrame(columns=['ingredientID', 'Score'])
 
-    for dish_id in df1['Dish_ID']:
-        matches = df2.loc[df2['DishID'] == dish_id, 'IngredientID']
+    for dishID in df1['Dish_ID']:
+        matches = df2.loc[df2['DishID'] == dishID, 'IngredientID']
 
-        for ingredient_id in matches:
-            if not result_df.empty and ingredient_id in result_df['Ingredient_ID'].values:
-                result_df.loc[result_df['Ingredient_ID'] == ingredient_id, 'Score'] += 1
+        for ingredientID in matches:
+            if not resultDF.empty and ingredientID in resultDF['ingredientID'].values:
+                resultDF.loc[resultDF['ingredientID'] == ingredientID, 'Score'] += 1
             else:
-                result_df = pd.concat([result_df, pd.DataFrame({'Ingredient_ID': [ingredient_id], 'Score': [1]})], ignore_index=True)
+                resultDF = pd.concat([resultDF, pd.DataFrame({'ingredientID': [ingredientID], 'Score': [1]})], ignore_index=True)
 
-    return result_df
+    return resultDF
 
 def getTopScorers(vegScoreDataframe, size):
     """Returns the IDs of vegetables based on the specified size."""
-    sorted_df = vegScoreDataframe.sort_values(by='Score', ascending=False)
-    return sorted_df.head(size)['Ingredient_ID'].tolist()
+    size = random.choice([size+1, size+2])
+    sortedDF = vegScoreDataframe.sort_values(by='Score', ascending=False)
+    return sortedDF.head(size)['ingredientID'].tolist()
 
 
 def divideStrings(input_vector, x):
@@ -130,13 +124,13 @@ def divideStrings(input_vector, x):
     if len(np.unique(input_vector)) < x:
         raise ValueError("Not enough unique elements in the input vector for division.")
     
-    bool_val = False
-    while not bool_val:
+    boolVal = False
+    while not boolVal:
         shuffled_vector = random.sample(input_vector, len(input_vector))
         substrings = np.array_split(shuffled_vector, x)
-        max_length = max(len(substring) for substring in substrings)
-        substrings = [np.pad(substring, (0, max_length - len(substring)), 'constant') for substring in substrings]
-        bool_val = all(len(np.unique(substring)) == len(substring) for substring in substrings)
+        maxLength = max(len(substring) for substring in substrings)
+        substrings = [np.pad(substring, (0, maxLength - len(substring)), 'constant') for substring in substrings]
+        boolVal = all(len(np.unique(substring)) == len(substring) for substring in substrings)
             
     return substrings
 
@@ -160,12 +154,12 @@ def generateVegCombinations(vegScoreDataframe, daysInPlan, divisionCount):
 
 def vegBaseProteinDish(vegetablesByDay, DishBaseProteinDataframe):
     """Combines veg, protein, base, and dish id for a given day."""
-    max_length = max(len(arr) for arr in vegetablesByDay)
-    column_names = [f'Veg{i+1}' for i in range(max_length)]
+    maxLength = max(len(arr) for arr in vegetablesByDay)
+    column_names = [f'Veg{i+1}' for i in range(maxLength)]
     vegDf = pd.DataFrame(vegetablesByDay, columns=column_names)
-    result_df = pd.concat([vegDf, pd.DataFrame(DishBaseProteinDataframe)], axis=1)
-    result_columns = [col for col in result_df.columns if col not in ['Dish_ID', 'Base_ID', 'Protein_ID']] + ['Dish_ID', 'Base_ID', 'Protein_ID']
-    return result_df[result_columns]
+    resultDF = pd.concat([vegDf, pd.DataFrame(DishBaseProteinDataframe)], axis=1)
+    result_columns = [col for col in resultDF.columns if col not in ['Dish_ID', 'Base_ID', 'Protein_ID']] + ['Dish_ID', 'Base_ID', 'Protein_ID']
+    return resultDF[result_columns]
 
 def completeDataframe(data):
     """Ensures the dataframe has no NaN entries and assigns dish ID based on rules."""
@@ -204,6 +198,7 @@ def replaceIndicesWithStrings(result_df, ingredientsSheet, basesSheet, dishSheet
     
     return df_check
 
+
 def getServings(proteinIDs, vegIDs, data):
     """
     Calculates the servings of fresh ingredients for each recipe as a fraction of meals.
@@ -220,15 +215,15 @@ def replaceNewlines(text):
     """
     return text.replace("\\n", "\n").replace("\n", "\n")
 
-def convertRecipesToDict(recipes_list):
+def convertRecipesToDict(recipesList):
     """
     Converts a list of recipe strings to a dictionary with recipe titles as keys.
     """
-    formatted_str = "[" + ",".join(recipes_list) + "]"
+    formatted_str = "[" + ",".join(recipesList) + "]"
     try:
-        recipes_list = json.loads(formatted_str)
-        recipes_dict = {recipe["recipe_title"]: recipe for recipe in recipes_list}
-        return recipes_dict
+        recipesList = json.loads(formatted_str)
+        recipesDict = {recipe["recipe_title"]: recipe for recipe in recipesList}
+        return recipesDict
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
         return None
@@ -237,11 +232,11 @@ def convertListToRecipeDict(recipe_list):
     """
     Parses each string in a list as JSON and adds it to a dictionary with the title as the key.
     """
-    recipes_dict = {}
+    recipesDict = {}
     for recipe_str in recipe_list:
         recipe = json.loads(recipe_str)
-        recipes_dict[recipe["recipe_title"]] = recipe
-    return recipes_dict
+        recipesDict[recipe["recipe_title"]] = recipe
+    return recipesDict
 
 def generateRecipe(api_key, row, diet, allergen):
     """
@@ -251,7 +246,7 @@ def generateRecipe(api_key, row, diet, allergen):
     vegetables = [row[f'Veg{i}'] for i in range(1, len(row) - 3 + 1)]
     protein = row['Protein_ID']
     base = row['Base_ID']
-    dish_id = row['Dish_ID']
+    dishID = row['Dish_ID']
     
     # Construct prompt 
     prompt = f"""Create a recipe with {', '.join(map(str, vegetables))} as vegetables,
@@ -259,7 +254,7 @@ def generateRecipe(api_key, row, diet, allergen):
         If there are allergens or dietary requirements, they are; {diet, allergen}
         Do not use any other fresh vegetables or proteins.
         You may use pantry items such as spices, sauces, and others that do not expire.
-        Give the recipe a creative, fun name relevant for a {dish_id} dish.
+        Give the recipe a creative, fun name relevant for a {dishID} dish.
         Do not print measurements for ingredients_list.
         Return each recipe as a json objects with four keys: recipe_title, ingredients
         instructions, notes. 

@@ -9,11 +9,12 @@ import cgitb
 cgitb.enable()
 import json
 import SQLConnection
-import Website
-from flask import Flask, request, render_template_string, render_template
-
 
 def website(data):
+    
+    sheets = SQLConnection.loadData()
+    ingredientsSheet = sheets['ingredientsSheet']
+    
     with open('templates/website.html', 'w', encoding='utf-8') as file:
         # Start of the HTML document
         file.write("<!DOCTYPE html>\n")
@@ -42,7 +43,6 @@ def website(data):
         
         i = 0
         for recipe_str in recipes:
-            print(repr(recipe_str))  # Use repr() to reveal hidden characters
             if not isinstance(recipe_str, str):
                 print(f"Expected a string, got {type(recipe_str)}")
                 continue  # Skip non-string items
@@ -75,30 +75,57 @@ def website(data):
                 for note in notes:
                     file.write(f"<li>{note}</li>\n")
             file.write("</ul>\n")
-            
             file.write("<hr>\n")
-        
-        # Print the 'Shopping List' before ending the document
+               
+            # Print the 'Shopping List' before ending the document
         file.write("<h2>Shopping List</h2>\n")
         file.write("<ul>\n")
         for ingredient in sorted(unique_ingredients):  # Sort ingredients for easier reading
             file.write(f"<li>{ingredient}</li>\n")
         file.write("</ul>\n")
-        
-        # End of the body and HTML document
+        file.write("<h2>Measurements</h2>\n")
+        file.write("<table border='1'>\n")  # Simple table with border; style as needed
+        file.write("<tr><th>Item</th><th>Quantity</th><th>Fraction used in recipe</th></tr>\n")  # Table headers
+
+            # Proper indentation starts here
+      
+        for ingredient_name in sorted(unique_ingredients):
+            filtered_df = ingredientsSheet[ingredientsSheet['Name'] == ingredient_name.lower()]
+            print(ingredient_name.lower())
+          #  print(ingredientsSheet['Name'])
+            #print(ingredientsSheet[ingredientsSheet['Name']])
+            if not filtered_df.empty:
+                ingredient_row = filtered_df.iloc[0]
+                shop_quantity = ingredient_row['ShopQuantity']
+                meals = ingredient_row['meals']
+                if meals > 0:
+                    fraction_used = 1 / meals
+                    fraction_display = f"{fraction_used:.2f}"  # Format fraction for display
+                else:
+                    fraction_display = "N/A"  # Handle cases where 'meals' might be zero or not applicable
+                
+                    # Write the table row for the ingredient
+                file.write(f"<tr><td>{ingredient_name}</td><td>{shop_quantity}</td><td>{fraction_display}</td></tr>\n")
+            
+            # Close the table HTML tag
+        file.write("</table>\n")
+            
+            # End of the body and HTML document
         file.write("</body>\n")
         file.write("</html>\n")
-        
+
+                
             
         
 def htmlForm():
     HTML_FORM='''
-        <!DOCTYPE html>
+       <!DOCTYPE html>
     <html lang="en">
     <head>
     <meta charset="UTF-8">
     <title>Submit Your Preferences</title>
     <style>
+      /* Your existing styles */
       body {
         background-color: #D0FBCD; /* Set the background color */
       }
@@ -114,7 +141,6 @@ def htmlForm():
         margin-right: 20px; /* Add some space between the form and the image */
         margin-top: 130px;
       }
-      /* Style inputs and labels for better alignment */
       label, input {
         display: block; /* Make label and input take the full width */
         margin-bottom: 10px; /* Add some space below each input field */
@@ -132,11 +158,12 @@ def htmlForm():
         max-width: 100%; /* Make image and iframe fully responsive */
         height: auto; /* Maintain aspect ratio for images */
       }
-      </style>
+    </style>
     </head>
     <body>
     <div class="container">
-      <form method="post">
+      <form id="preferenceForm" method="post">
+        <!-- Your existing form fields -->
         <label for="dietary-preferences">Enter your dietary preferences:</label>
         <input type="text" id="dietary-preferences" name="dietary-preferences"><br>
         <label for="allergies">Enter any allergies you have:</label>
@@ -147,14 +174,29 @@ def htmlForm():
         <input type="text" id="planning-days" name="planning-days"><br>
         <input type="submit" value="Submit">
       </form>
-      <!-- Correctly use an image or iframe -->
+      <!-- Your image div -->
       <div class="form-image">
-        <!-- Update the src attribute with your image URL -->
         <img src="https://framerusercontent.com/images/CoMwGenhYzzdwcUoeo2Avl2GE.png">
       </div>
     </div>
+    
+    <script>
+    document.getElementById('preferenceForm').addEventListener('submit', function(event) {
+        const planningDaysInput = document.getElementById('planning-days');
+        const planningDaysValue = parseInt(planningDaysInput.value, 10);
+        const validDays = [3, 4, 5, 6, 7];
+    
+        if (!validDays.includes(planningDaysValue)) {
+            // Show an alert if the input value is not in the validDays array
+            alert('Please enter a number of days between 3 and 7.');
+            event.preventDefault(); // Prevent form from submitting
+        }
+        // If validation passes, the form will submit normally
+    });
+    </script>
+    
     </body>
     </html>
-    '''
     
+        '''
     return HTML_FORM
